@@ -7,7 +7,6 @@
 	}
 	if(!window.ff.config){
 		window.ff.config = {
-			someSetting: 'some value',
 			root: '/views/',
 			ext: '.mst'
 		}
