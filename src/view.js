@@ -14,6 +14,7 @@
 */
 ;(function ($){
 	var views = {};
+	var loadingViews = {};
 	if(!window.Mustache){
 		throw new Error('Mustache must be required for ff.view !');
 	}
@@ -30,56 +31,55 @@
 				dfd.resolve(result);
 			}
 
-			return function renderView(name, data, cb){
-				var config = window.ff.view.config;
+			function loadTemplate(name){
 				var dfd = $.Deferred();
-				var result;
-				if(!views[name]){
+				var config = window.ff.view.config;
+
+				if(!!loadingViews[name]){
+					dfd = loadingViews[name];
+				} else if(!views[name]){
+					loadingViews[name] = dfd;
 					$.get(config.root + name + config.ext)
-						.done(function(template){
+						.then(function(template){
 							views[name] = template;
-							if(data && typeof data === 'object'){
-								result = Mustache.render(template, data);
-
-								if(typeof data.layout === 'string'){
-									renderView('layouts/' + data.layout)
-										.then(function(layout){
-											result = Mustache.render(layout, data.dataLayout, {partialView: result});
-											resolveDfd(dfd, cb, result);
-										}, function(err){
-											dfd.reject('Can not get layout ' + data.layout);
-										});
-								} else {
-									resolveDfd(dfd, cb, result);
-								}
-
-							} else {
-								result = template;
-								resolveDfd(dfd, cb, result);
-							}
-						})
-						.fail(function(){
-							dfd.reject('Can not get view ' + name);
+							resolveDfd(dfd, null, template);
+							loadingViews[name] = null;
+							delete loadingViews[name];
+						}, function(err){
+							console.error(`Can't get view "${name}"`);
+							console.error(err);
 						});
 				} else {
-					if(data){
-						result = Mustache.render(views[name], data);
+					resolveDfd(dfd, null, views[name]);
+				}
 
-						if(typeof data.layout === 'string'){
-							renderView('layouts/' + data.layout)
-								.then(function(layout){
-									result = Mustache.render(layout, data.dataLayout, {partialView: result});
-									resolveDfd(dfd, cb, result);
-								});
+				return dfd.promise();
+			}
+
+			return function renderView(name, data, cb){
+				var dfd = $.Deferred();
+				var result;
+
+				loadTemplate(name)
+					.then(function(template){
+						if(data && typeof data === 'object'){
+							result = Mustache.render(template, data);
+
+							if(typeof data.layout === 'string'){
+								renderView('layouts/' + data.layout)
+									.then(function(layout){
+										result = Mustache.render(layout, data.dataLayout, {partialView: result});
+										resolveDfd(dfd, cb, result);
+									});
+							} else {
+								resolveDfd(dfd, cb, result);
+							}
+
 						} else {
+							result = template;
 							resolveDfd(dfd, cb, result);
 						}
-
-					} else {
-						result = views[name];
-						resolveDfd(dfd, cb, result);
-					}
-				}
+					});
 
 				return dfd.promise();
 			};
