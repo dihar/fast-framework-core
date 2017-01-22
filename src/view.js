@@ -68,7 +68,7 @@
 							if(typeof data.layout === 'string'){
 								renderView('layouts/' + data.layout)
 									.then(function(layout){
-										result = Mustache.render(layout, data.dataLayout, {partialView: result});
+										result = Mustache.render(layout, data.dataLayout || {}, {partialView: result});
 										resolveDfd(dfd, cb, result);
 									});
 							} else {
