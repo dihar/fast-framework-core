@@ -107,10 +107,14 @@
 						params = {};
 					}
 					var route = getRoute(newName, params.hashParams);
+					var mainController = controller;
+					if(Array.isArray(controller)){
+						mainController = controller[controller.length - 1];
+					}
 					if(!route){
 						routes.push({
 							name: newName,
-							controller: controller,
+							controller: mainController,
 							title: params.title,
 							hashParams: params.hashParams,
 							param: params.param,
