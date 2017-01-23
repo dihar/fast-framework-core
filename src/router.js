@@ -114,6 +114,7 @@
 							title: params.title,
 							hashParams: params.hashParams,
 							param: params.param,
+							guardError: params.guardError,
 							type: typeof newName === 'object' ? 'regexp' : 'string'
 						});
 					} else {
@@ -153,22 +154,47 @@
 								data[params.param] = param[1];
 							}
 						}
-
-						controller.value(data);
+						if(Array.isArray(controller) && controller.length > 1){
+							var controllers = controller;
+							var lastControler = controllers.slice(-1)[0];
+							var guards = controllers.slice(0, -1).map(function(guard){
+								return guard.value(data);
+							});
+							$.when.apply(null, guards).then(function(){
+								lastControler.value(data);
+							}, function(error){
+								if (!!params.guardError){
+									if(typeof params.guardError !== 'function'){
+										throw new Error('"guardError" in options of route must be a function');
+										return false;
+									}
+									params.guardError(error);
+								}
+							});
+						} else if(Array.isArray(controller) && controller.length === 1){
+							controller[0].value(data);
+						} else if(!Array.isArray(controller)){
+							controller.value(data);
+						}
 					});
 				},
 				
 				go: function(name, title, isPushState){
+
 					var router = findRoute(name);
 
 					if(router){
 						if(!title){
 							title = router.title;
 						}
-						if(!!activeRoute){
+						if(!!activeRoute && activeRoute.controller && typeof activeRoute.controller.clearFunction === 'function'){
 							activeRoute.controller.clearFunction(name);
 						}
 						activeRoute = router;
+
+						if(!!title){
+							document.title = title;
+						}
 
 						$.router.go(name, title, !isPushState);
 					} else {
@@ -182,8 +208,8 @@
 					var go = this.go;
 					var $cont = $(container);
 					$cont.find('a').filter(function(i, el){
-						return !!findRoute($(el).attr('href')) && $(el).attr('target') !== '_blank';
-					}).click(function(e){
+						return !!findRoute($(el).attr('href')) && $(el).attr('target') !== '_blank' && $(el).attr('data-ff-route') !== 'bind';
+					}).attr('data-ff-route', 'bind').click(function(e){
 						e.preventDefault();
 						go($(this).attr('href'), findRoute($(this).attr('href')).title, true);
 					});
@@ -213,7 +239,7 @@
 				originHandler.apply(this, arguments);
 
 				var path = window.location.pathname + window.location.hash;
-				if(!!activeRoute){
+				if(!!activeRoute && activeRoute.controller && typeof activeRoute.controller.clearFunction === 'function'){
 					activeRoute.controller.clearFunction(path);
 				}
 				ff.router.go(path);
