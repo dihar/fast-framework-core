@@ -6,11 +6,10 @@
 		window.ff = {};
 	}
 	if(!window.ff.config){
-		window.ff.config = {
-			root: '/views/',
-			ext: '.mst'
-		}
+		window.ff.config = {}
 	}
+	window.ff.config.root = '/views/';
+	window.ff.config.ext = '.mst';
 
 	if(!window.ff.state){
 		window.ff.state = {
@@ -156,12 +155,13 @@
 		}
 		push(item, parentMeta = null){
 			var meta = this.name + '_' + this.length++;
-			this.hash[meta] = Object.assign(item, {
+			this.hash[meta] = {
+				item: Object.assign({}, item),
 				parentMeta,
 				meta, 
-				childrenArr: item.el.has_child ? [] : null,
+				childrenArr: [],
 				level: parentMeta ? this.hash[parentMeta].level + 1 : 1
-			});
+			};
 			if(!!parentMeta){
 				this.hash[parentMeta].childrenArr.push(meta);
 			} else{
@@ -192,7 +192,7 @@
 		getNodeByMeta(meta){
 			var registry = this.getRegistry(meta);
 			if(!registry._node){
-				let node = $('#mustache-target').find(`[data-ff="${meta}"]`);
+				let node = $('body').find(`[data-ff="${meta}"]`);
 				registry._node = node;
 			}
 			return registry._node;
@@ -201,8 +201,11 @@
 			var registry = this.getRegistry(meta);
 			registry._node = node;
 		}
-		getFirstLevelMeta(){
-			return this.hash[this.name + '_-1'].childrenArr;
+		getChildren(meta){
+			if( meta === undefined ){
+				meta = this.name + '_-1';
+			}
+			return this.hash[meta].childrenArr;
 		}
 	};
 
