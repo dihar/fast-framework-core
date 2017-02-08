@@ -1,6 +1,6 @@
 {
   "name": "fast-framework-core",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Simply framework for fast start and ease work. Main partials: jq, mustache, es6, moment.js",
   "main": "core.js",
   "scripts": {
